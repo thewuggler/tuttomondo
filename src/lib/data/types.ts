@@ -175,13 +175,36 @@ export interface TimelineEntry {
   refId?: string;
 }
 
+export type EventTier = "general" | "vip-preview" | "intimate" | "artist-meet";
+
+export type EventInviteStatus =
+  | "shortlisted"
+  | "invited"
+  | "accepted"
+  | "maybe"
+  | "declined";
+
 export interface Event {
   id: string;
   name: string;
   kind: "opening" | "art-fair" | "private-viewing" | "dinner" | "studio-visit";
   date: string;
   city: string;
+  country: string;
+  tier: EventTier;
+  influenceScore: number;
+  influenceNote: string;
+  featuredArtistIds: string[];
   attendeeCollectorIds: string[];
+}
+
+export interface EventInvite {
+  id: string;
+  eventId: string;
+  collectorId: string;
+  status: EventInviteStatus;
+  rsvpAt?: string;
+  note?: string;
 }
 
 export interface Nudge {

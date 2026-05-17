@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Sparkles, Wand2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Mail, MessageCircle, Phone, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -14,6 +14,25 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { EmailThread, Nudge, Collector } from "@/lib/data/types";
+
+type Channel = "email" | "sms" | "whatsapp";
+
+function channelize(draft: string, channel: Channel): string {
+  if (channel === "email") return draft;
+  const lines = draft
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const isSig = (l: string) => l.split(" ").length <= 2;
+  const withoutSig = lines.length > 1 && isSig(lines[lines.length - 1])
+    ? lines.slice(0, -1)
+    : lines;
+  const body = withoutSig.join(" ").replace(/\s+/g, " ");
+  const cap = channel === "sms" ? 240 : 320;
+  return body.length > cap
+    ? body.slice(0, cap).replace(/\s\S*$/, "") + "…"
+    : body;
+}
 
 export function DraftSheet({
   trigger,
@@ -28,6 +47,16 @@ export function DraftSheet({
 }) {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
+
+  const availableChannels: Channel[] = useMemo(() => {
+    const list: Channel[] = ["email"];
+    if (collector.consent.textOk) list.push("sms");
+    if (collector.consent.whatsappOk) list.push("whatsapp");
+    return list;
+  }, [collector]);
+
+  const [channel, setChannel] = useState<Channel>(availableChannels[0]);
+  const draftBody = channelize(nudge.suggestedDraft ?? "", channel);
 
   return (
     <Sheet
@@ -92,15 +121,49 @@ export function DraftSheet({
               <p className="mt-1 text-xs text-muted-foreground">
                 Trained on your last 50 messages with {collector.name.split(" ")[0]}.
               </p>
+
+              <div className="mt-3 inline-flex rounded-lg border border-border/70 bg-secondary p-0.5">
+                {(["email", "sms", "whatsapp"] as const).map((ch) => {
+                  const enabled = availableChannels.includes(ch);
+                  const Icon = ch === "email" ? Mail : ch === "sms" ? Phone : MessageCircle;
+                  return (
+                    <button
+                      key={ch}
+                      type="button"
+                      disabled={!enabled}
+                      onClick={() => setChannel(ch)}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                        channel === ch && enabled
+                          ? "bg-background text-foreground shadow-sm"
+                          : enabled
+                          ? "text-muted-foreground hover:text-foreground"
+                          : "cursor-not-allowed text-muted-foreground/40"
+                      }`}
+                    >
+                      <Icon className="size-3" />
+                      {ch === "sms" ? "SMS" : ch === "whatsapp" ? "WhatsApp" : "Email"}
+                      {!enabled ? (
+                        <span className="ml-0.5 text-[9px] uppercase">no consent</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+
               <div className="mt-3 space-y-2 rounded-lg border border-foreground/15 bg-card p-4 shadow-sm">
-                {nudge.suggestedSubject ? (
+                {channel === "email" && nudge.suggestedSubject ? (
                   <p className="border-b border-border/60 pb-2 text-sm font-medium">
                     {nudge.suggestedSubject}
                   </p>
                 ) : null}
                 <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
-                  {nudge.suggestedDraft}
+                  {draftBody}
                 </p>
+                {channel !== "email" ? (
+                  <p className="pt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {draftBody.length} characters · sent from your gallery line
+                  </p>
+                ) : null}
               </div>
               <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Sparkles className="size-3" />

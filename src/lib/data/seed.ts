@@ -4,6 +4,7 @@ import type {
   Collector,
   EmailThread,
   Event,
+  EventInvite,
   Gallery,
   Nudge,
   Purchase,
@@ -990,7 +991,13 @@ export const events: Event[] = [
     kind: "opening",
     date: "2026-06-04",
     city: "New York",
-    attendeeCollectorIds: ["c_helen", "c_carla", "c_doug", "c_ethan_brown"],
+    country: "US",
+    tier: "general",
+    influenceScore: 7,
+    influenceNote:
+      "Okafor's first NY solo since the Studio Museum show — peer attendance from MoMA acquisitions, two New York Times advisors confirmed.",
+    featuredArtistIds: ["a_okafor"],
+    attendeeCollectorIds: ["c_helen", "c_carla", "c_doug"],
   },
   {
     id: "e_frieze_london",
@@ -998,7 +1005,13 @@ export const events: Event[] = [
     kind: "art-fair",
     date: "2026-10-15",
     city: "London",
-    attendeeCollectorIds: ["c_priya_v", "c_l1", "c_l9", "c_l15", "c_l21"],
+    country: "GB",
+    tier: "general",
+    influenceScore: 9,
+    influenceNote:
+      "Anchor European fair. Draws curators, advisors, and trustees globally. Press cycle starts six weeks out.",
+    featuredArtistIds: ["a_aboagye", "a_park"],
+    attendeeCollectorIds: ["c_priya_v", "c_l1", "c_l9", "c_l15"],
   },
   {
     id: "e_basel_miami",
@@ -1006,7 +1019,13 @@ export const events: Event[] = [
     kind: "art-fair",
     date: "2026-12-04",
     city: "Miami Beach",
-    attendeeCollectorIds: ["c_julia", "c_carla", "c_l10", "c_l23", "c_l25"],
+    country: "US",
+    tier: "general",
+    influenceScore: 10,
+    influenceNote:
+      "Largest fair on the calendar by attendance. Critical for US private collectors and family offices; satellite events drive most relationship work.",
+    featuredArtistIds: ["a_vega", "a_solomon"],
+    attendeeCollectorIds: ["c_julia", "c_carla"],
   },
   {
     id: "e_studio_solomon",
@@ -1014,8 +1033,48 @@ export const events: Event[] = [
     kind: "studio-visit",
     date: "2026-05-29",
     city: "Brooklyn",
-    attendeeCollectorIds: ["c_helen", "c_doug", "c_l25"],
+    country: "US",
+    tier: "intimate",
+    influenceScore: 4,
+    influenceNote:
+      "Pre-show studio visit for top-tier collectors. Six guest cap. Solomon will be present.",
+    featuredArtistIds: ["a_solomon"],
+    attendeeCollectorIds: ["c_helen", "c_doug"],
   },
+];
+
+export const eventInvites: EventInvite[] = [
+  { id: "iv_1", eventId: "e_okafor_opening", collectorId: "c_helen", status: "accepted", rsvpAt: "2026-05-08T10:00:00Z" },
+  { id: "iv_2", eventId: "e_okafor_opening", collectorId: "c_carla", status: "accepted", rsvpAt: "2026-05-04T16:30:00Z" },
+  { id: "iv_3", eventId: "e_okafor_opening", collectorId: "c_doug", status: "maybe", rsvpAt: "2026-05-10T09:15:00Z", note: "Eliza out of town that week" },
+  { id: "iv_4", eventId: "e_okafor_opening", collectorId: "c_priya_v", status: "invited" },
+  { id: "iv_5", eventId: "e_okafor_opening", collectorId: "c_l9", status: "invited" },
+  { id: "iv_6", eventId: "e_okafor_opening", collectorId: "c_l25", status: "shortlisted" },
+  { id: "iv_7", eventId: "e_okafor_opening", collectorId: "c_julia", status: "shortlisted" },
+  { id: "iv_8", eventId: "e_okafor_opening", collectorId: "c_l8", status: "shortlisted" },
+
+  { id: "iv_10", eventId: "e_frieze_london", collectorId: "c_priya_v", status: "accepted", rsvpAt: "2026-04-30T11:00:00Z" },
+  { id: "iv_11", eventId: "e_frieze_london", collectorId: "c_l9", status: "accepted" },
+  { id: "iv_12", eventId: "e_frieze_london", collectorId: "c_l15", status: "accepted" },
+  { id: "iv_13", eventId: "e_frieze_london", collectorId: "c_l21", status: "accepted" },
+  { id: "iv_14", eventId: "e_frieze_london", collectorId: "c_l1", status: "maybe" },
+  { id: "iv_15", eventId: "e_frieze_london", collectorId: "c_otto", status: "invited" },
+  { id: "iv_16", eventId: "e_frieze_london", collectorId: "c_carla", status: "invited" },
+  { id: "iv_17", eventId: "e_frieze_london", collectorId: "c_paul", status: "shortlisted" },
+
+  { id: "iv_20", eventId: "e_basel_miami", collectorId: "c_julia", status: "accepted" },
+  { id: "iv_21", eventId: "e_basel_miami", collectorId: "c_carla", status: "accepted" },
+  { id: "iv_22", eventId: "e_basel_miami", collectorId: "c_l23", status: "accepted" },
+  { id: "iv_23", eventId: "e_basel_miami", collectorId: "c_l25", status: "maybe" },
+  { id: "iv_24", eventId: "e_basel_miami", collectorId: "c_l10", status: "maybe" },
+  { id: "iv_25", eventId: "e_basel_miami", collectorId: "c_helen", status: "invited" },
+  { id: "iv_26", eventId: "e_basel_miami", collectorId: "c_max", status: "invited" },
+  { id: "iv_27", eventId: "e_basel_miami", collectorId: "c_doug", status: "shortlisted" },
+
+  { id: "iv_30", eventId: "e_studio_solomon", collectorId: "c_helen", status: "accepted", rsvpAt: "2026-05-12T14:00:00Z" },
+  { id: "iv_31", eventId: "e_studio_solomon", collectorId: "c_doug", status: "accepted" },
+  { id: "iv_32", eventId: "e_studio_solomon", collectorId: "c_carla", status: "maybe" },
+  { id: "iv_33", eventId: "e_studio_solomon", collectorId: "c_l25", status: "invited" },
 ];
 
 export const nudges: Nudge[] = [

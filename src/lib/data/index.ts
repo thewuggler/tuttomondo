@@ -2,6 +2,7 @@ import {
   artists,
   artworks,
   collectors,
+  eventInvites,
   events,
   gallery,
   nudges,
@@ -14,6 +15,8 @@ import type {
   Artwork,
   Collector,
   EmailThread,
+  Event,
+  EventInvite,
   Nudge,
   Purchase,
   Rep,
@@ -21,7 +24,18 @@ import type {
   TimelineEntry,
 } from "./types";
 
-export { gallery, reps, artists, artworks, collectors, purchases, threads, events, nudges };
+export {
+  gallery,
+  reps,
+  artists,
+  artworks,
+  collectors,
+  purchases,
+  threads,
+  events,
+  eventInvites,
+  nudges,
+};
 
 export const today = new Date("2026-05-17T12:00:00Z");
 
@@ -225,6 +239,195 @@ export function getCollectorBrief(collectorId: string): string[] {
 
   if (c.privateNote) lines.push(c.privateNote);
   return lines;
+}
+
+export function getEvent(id: string): Event | undefined {
+  return events.find((e) => e.id === id);
+}
+
+export function getInvitesForEvent(eventId: string): EventInvite[] {
+  return eventInvites.filter((i) => i.eventId === eventId);
+}
+
+export function getInvitesForCollector(collectorId: string): EventInvite[] {
+  return eventInvites.filter((i) => i.collectorId === collectorId);
+}
+
+const sameCountryRegion: Record<string, string> = {
+  US: "north-america",
+  CA: "north-america",
+  MX: "north-america",
+  GB: "europe",
+  IE: "europe",
+  FR: "europe",
+  DE: "europe",
+  IT: "europe",
+  ES: "europe",
+  CH: "europe",
+  AT: "europe",
+  NL: "europe",
+  BE: "europe",
+  PT: "europe",
+  PL: "europe",
+  SE: "europe",
+  NO: "europe",
+  DK: "europe",
+  FI: "europe",
+  JP: "asia-pacific",
+  KR: "asia-pacific",
+  HK: "asia-pacific",
+  SG: "asia-pacific",
+  AU: "asia-pacific",
+  IL: "middle-east",
+  AE: "middle-east",
+  LB: "middle-east",
+  EG: "middle-east",
+  BR: "latin-america",
+  AR: "latin-america",
+};
+
+export function travelFrictionScore(
+  collectorCountry: string,
+  collectorCity: string,
+  eventCountry: string,
+  eventCity: string,
+): { friction: number; label: string } {
+  if (
+    collectorCountry === eventCountry &&
+    collectorCity.toLowerCase() === eventCity.toLowerCase()
+  ) {
+    return { friction: 0, label: "local" };
+  }
+  if (collectorCountry === eventCountry) {
+    return { friction: 1, label: "in-country" };
+  }
+  const cr = sameCountryRegion[collectorCountry];
+  const er = sameCountryRegion[eventCountry];
+  if (cr && er && cr === er) return { friction: 2, label: "same region" };
+  return { friction: 3, label: "transcontinental" };
+}
+
+export interface EventScore {
+  collector: Collector;
+  score: number;
+  likelihood: "high" | "medium" | "low" | "unlikely";
+  signals: Array<{ kind: "ok" | "info" | "warn"; text: string }>;
+}
+
+export function scoreCollectorForEvent(
+  collector: Collector,
+  event: Event,
+): EventScore {
+  const signals: EventScore["signals"] = [];
+  let score = 0;
+
+  const friction = travelFrictionScore(
+    collector.country,
+    collector.city,
+    event.country,
+    event.city,
+  );
+  const frictionBoost = [3, 2, 1, -1][friction.friction] ?? -1;
+  score += frictionBoost;
+  if (friction.friction <= 1) {
+    signals.push({ kind: "ok", text: `Proximity (${friction.label})` });
+  } else if (friction.friction === 2) {
+    signals.push({
+      kind: "info",
+      text: `Same region — ${event.influenceScore >= 8 ? "worth the flight" : "marginal travel call"}`,
+    });
+  } else {
+    signals.push({
+      kind: "info",
+      text: `Transcontinental — only attends if scene-influence is high`,
+    });
+  }
+
+  const influenceLift = Math.max(0, event.influenceScore - 5);
+  score += influenceLift;
+  if (event.influenceScore >= 8) {
+    signals.push({
+      kind: "ok",
+      text: `Scene influence ${event.influenceScore}/10 — collectors of this profile typically attend`,
+    });
+  }
+
+  const featuredOverlap = event.featuredArtistIds.filter((a) =>
+    collector.preferences.preferredArtists.includes(a),
+  );
+  if (featuredOverlap.length > 0) {
+    score += 4;
+    const artistNames = featuredOverlap
+      .map((id) => artists.find((a) => a.id === id)?.name)
+      .filter(Boolean)
+      .join(" + ");
+    signals.push({ kind: "ok", text: `Preferred artist showing — ${artistNames}` });
+  }
+
+  if (collector.tier === "vip") {
+    score += 2;
+    if (event.tier === "vip-preview" || event.tier === "intimate") {
+      score += 3;
+      signals.push({ kind: "ok", text: `Tier match — VIP collector for ${event.tier.replace("-", " ")} event` });
+    }
+  } else if (collector.tier === "active") {
+    score += 1;
+  } else if (collector.tier === "prospect") {
+    if (event.tier === "intimate") {
+      score -= 4;
+      signals.push({
+        kind: "warn",
+        text: "Prospect — intimate event likely not the right first touch",
+      });
+    }
+  } else if (collector.tier === "dormant") {
+    score -= 1;
+  }
+
+  const traveling = collector.importantDates.some(
+    (d) =>
+      d.label.toLowerCase().includes(event.city.toLowerCase()) ||
+      d.label.toLowerCase().includes(event.name.toLowerCase().split(" ")[0]),
+  );
+  if (traveling) {
+    score += 5;
+    signals.push({ kind: "ok", text: "Stated travel window matches event date" });
+  }
+
+  const priorAttendance = eventInvites.some(
+    (i) =>
+      i.collectorId === collector.id &&
+      i.status === "accepted" &&
+      events.find((e) => e.id === i.eventId)?.kind === event.kind,
+  );
+  if (priorAttendance) {
+    score += 2;
+    signals.push({ kind: "ok", text: `Attended a ${event.kind.replace("-", " ")} before` });
+  }
+
+  let likelihood: EventScore["likelihood"];
+  if (score >= 10) likelihood = "high";
+  else if (score >= 6) likelihood = "medium";
+  else if (score >= 2) likelihood = "low";
+  else likelihood = "unlikely";
+
+  return { collector, score, likelihood, signals };
+}
+
+export function getRepSocialCalendar(repId: string) {
+  return events
+    .map((e) => {
+      const reps = getInvitesForEvent(e.id)
+        .filter((i) => i.status === "accepted" || i.status === "maybe")
+        .map((i) => ({ invite: i, collector: getCollector(i.collectorId) }))
+        .filter(
+          (row): row is { invite: EventInvite; collector: Collector } =>
+            !!row.collector && row.collector.owningRepId === repId,
+        );
+      return { event: e, attendees: reps };
+    })
+    .filter((row) => row.attendees.length > 0)
+    .sort((a, b) => +new Date(a.event.date) - +new Date(b.event.date));
 }
 
 export function getAttentionList(): Array<{

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Calendar, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, Calendar, MapPin, Sparkles, Wand2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   getCollectorBrief,
   getNudgesForRep,
   getRep,
+  getRepSocialCalendar,
   getThreadsForCollector,
   getThreadsForRep,
 } from "@/lib/data";
@@ -57,6 +58,8 @@ export default async function RepTodayPage({ params }: PageProps) {
     .filter((d) => d.ts >= Date.now() - 86_400_000)
     .sort((a, b) => a.ts - b.ts)
     .slice(0, 4);
+
+  const socialCalendar = getRepSocialCalendar(repId);
 
   const firstName = rep.name.split(" ")[0];
 
@@ -137,6 +140,63 @@ export default async function RepTodayPage({ params }: PageProps) {
           })}
         </div>
       </section>
+
+      {socialCalendar.length > 0 ? (
+        <section>
+          <div className="flex items-center gap-2">
+            <MapPin className="size-4" />
+            <h2 className="font-display text-xl font-semibold tracking-tight">
+              Where you'll see them
+            </h2>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Your collectors' confirmed and likely event attendance — your social calendar.
+          </p>
+          <div className="mt-3 space-y-2">
+            {socialCalendar.map(({ event, attendees }) => (
+              <Link
+                key={event.id}
+                href={`/events/${event.id}`}
+                className="block rounded-lg border border-border/60 bg-card p-3 transition hover:border-foreground/30 hover:shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{event.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(event.date).toLocaleDateString("en-US", {
+                        weekday: "short",
+                        month: "long",
+                        day: "numeric",
+                      })}{" "}
+                      · {event.city}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs font-medium tabular-nums">
+                    {attendees.filter((a) => a.invite.status === "accepted").length} ·{" "}
+                    <span className="text-muted-foreground">
+                      {attendees.filter((a) => a.invite.status === "maybe").length} maybe
+                    </span>
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {attendees.map(({ collector, invite }) => (
+                    <span
+                      key={invite.id}
+                      className={`rounded-full px-2 py-0.5 text-[11px] ${
+                        invite.status === "accepted"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {collector.name}
+                    </span>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-2">
         <Card>
