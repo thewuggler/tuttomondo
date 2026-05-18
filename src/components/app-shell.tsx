@@ -10,7 +10,6 @@ import { BrandMark } from "./brand-mark";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const persona = derivePersona(pathname);
-  const isRep = persona.kind === "rep";
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
@@ -28,12 +27,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="mx-auto flex w-full max-w-7xl flex-1 gap-0 md:gap-8 md:px-8 md:py-6">
         <Sidebar persona={persona} />
-        <main className={`flex-1 ${isRep ? "pb-20 md:pb-6" : "pb-6"}`}>
-          {children}
-        </main>
+        <main className="flex-1 pb-20 md:pb-6">{children}</main>
       </div>
 
-      {isRep ? <BottomNav repId={persona.repId} pathname={pathname} /> : null}
+      <BottomNav persona={persona} pathname={pathname} />
     </div>
   );
 }

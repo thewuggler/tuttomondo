@@ -1,12 +1,5 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import OwnerDashboardPage from "./owner/page";
 
 export default function Home() {
-  const router = useRouter();
-  useEffect(() => {
-    router.replace("/owner");
-  }, [router]);
-  return null;
+  return <OwnerDashboardPage />;
 }

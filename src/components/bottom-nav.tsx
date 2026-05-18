@@ -1,16 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles, Inbox, Users, Frame } from "lucide-react";
+import {
+  Sparkles,
+  Inbox,
+  Users,
+  Frame,
+  LayoutDashboard,
+  CalendarRange,
+} from "lucide-react";
+import type { Persona } from "./app-shell";
 
-export function BottomNav({ repId, pathname }: { repId: string; pathname: string }) {
-  const items = [
-    { label: "Today", href: `/rep/${repId}`, icon: Sparkles, exact: true },
-    { label: "Inbox", href: `/rep/${repId}/inbox`, icon: Inbox },
-    { label: "Collectors", href: `/rep/${repId}/collectors`, icon: Users },
+interface NavItem {
+  label: string;
+  href: string;
+  icon: typeof Sparkles;
+  exact?: boolean;
+}
+
+function itemsFor(persona: Persona): NavItem[] {
+  if (persona.kind === "rep") {
+    return [
+      { label: "Today", href: `/rep/${persona.repId}`, icon: Sparkles, exact: true },
+      { label: "Inbox", href: `/rep/${persona.repId}/inbox`, icon: Inbox },
+      { label: "Book", href: `/rep/${persona.repId}/collectors`, icon: Users },
+      { label: "Inventory", href: `/artworks`, icon: Frame },
+    ];
+  }
+  return [
+    { label: "Pulse", href: `/`, icon: LayoutDashboard, exact: true },
+    { label: "Collectors", href: `/collectors`, icon: Users },
     { label: "Inventory", href: `/artworks`, icon: Frame },
+    { label: "Events", href: `/events`, icon: CalendarRange },
   ];
+}
 
+export function BottomNav({
+  persona,
+  pathname,
+}: {
+  persona: Persona;
+  pathname: string;
+}) {
+  const items = itemsFor(persona);
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 backdrop-blur-md md:hidden">
       <ul className="grid grid-cols-4">
